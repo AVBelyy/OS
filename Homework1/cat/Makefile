@@ -8,6 +8,9 @@ clean:
 	rm -f cat
 	rm -f cat.o
 
+../lib/libhelpers.so:
+	$(MAKE) -C $(dir $@) $(notdir $@)
+
 cat: cat.o ../lib/libhelpers.so
 	$(CC) -o $@ $(LD_OPTS) $<
 
