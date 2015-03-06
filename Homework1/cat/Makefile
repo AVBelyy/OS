@@ -2,14 +2,16 @@ CC = gcc
 CC_OPTS = -Wall -I../lib
 LD_OPTS = -L../lib -lhelpers
 
-all: cat
+PROGRAM = cat
+
+all: $(PROGRAM)
 
 clean:
-	rm -f cat
-	rm -f cat.o
+	rm -f $(PROGRAM)
+	rm -f $(PROGRAM).o
 
-cat: cat.o ../lib/libhelpers.so
+$(PROGRAM): $(PROGRAM).o ../lib/libhelpers.so
 	$(CC) -o $@ $(LD_OPTS) $<
 
-cat.o: cat.c
+$(PROGRAM).o: $(PROGRAM).c
 	$(CC) -o $@ -c $(CC_OPTS) $<
