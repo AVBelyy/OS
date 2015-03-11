@@ -1,5 +1,5 @@
 CC = gcc
-CC_OPTS = -Wall -I../lib
+CC_OPTS = -Wall -std=c99 -I../lib
 LD_OPTS = -L../lib -lhelpers
 
 PROGRAM = cat
