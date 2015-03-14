@@ -1,5 +1,7 @@
 #include <helpers.h>
 
+#include <sys/wait.h>
+
 ssize_t read_until(int fd, void * buf, size_t count, char delimeter) {
     size_t nall = 0;
     size_t nread;
@@ -54,4 +56,20 @@ ssize_t write_(int fd, const void * buf, size_t count) {
     } while (count > 0 && nwritten > 0);
 
     return nall;
+}
+
+int spawn(const char * file, char * const argv []) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        execvp(file, argv);
+        return SPAWN_UNEXPECTED_RESULT;
+    } else {
+        int status;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status)) {
+            return WEXITSTATUS(status);
+        } else {
+            return SPAWN_UNEXPECTED_RESULT;
+        }
+    }
 }
