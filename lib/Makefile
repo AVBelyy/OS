@@ -9,7 +9,7 @@ clean:
 	rm -f helpers.o
 
 libhelpers.so: helpers.o
-	$(CC) -o $@ -shared $(LD_OPTS) $<
+	$(CC) -o $@ -shared $< $(LD_OPTS)
 
 helpers.o: helpers.c
-	$(CC) -o $@ -c $(CC_OPTS) $<
+	$(CC) -o $@ -c $< $(CC_OPTS)
