@@ -6,7 +6,7 @@
 
 #define DELIM ' '
 
-void revwords_error(const char * error_str) {
+void lenwords_error(const char * error_str) {
     fprintf(stderr, "%s\n", error_str);
     exit(1);
 }
@@ -32,16 +32,14 @@ int main() {
         nread = read_until(STDIN_FILENO, buf, sizeof(buf), DELIM);
 
         if (nread == -1) {
-            revwords_error(strerror(errno));
+            lenwords_error(strerror(errno));
         }
 
         for (int i = 0; i < nread; i++) {
             if (buf[i] == DELIM) {
-                if (word_pos != 0) {
-                    out_strlen();
-                }
-                word_pos = 0;
+                out_strlen();
                 out_char(DELIM);
+                word_pos = 0;
             } else {
                 word[word_pos++] = buf[i];
             }
@@ -49,9 +47,7 @@ int main() {
 
     } while (nread > 0);
 
-    if (word_pos != 0) {
-        out_strlen();
-    }
+    out_strlen();
 
     return 0;
 }
