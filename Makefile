@@ -1,4 +1,4 @@
-all: cat/cat revwords/revwords filter/filter
+all: cat/cat revwords/revwords filter/filter bufcat/bufcat
 
-cat/cat revwords/revwords filter/filter:
+cat/cat revwords/revwords filter/filter bufcat/bufcat:
 	$(MAKE) -C $(dir $@) $(notdir $@)
