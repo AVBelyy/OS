@@ -1,6 +1,9 @@
 #include <bufio.h>
+#include <stdio.h>
 
 #include <sys/types.h>
+
+#define min(a, b) ((a) < (b) ? (a) : (b))
 
 struct buf_t * buf_new(size_t capacity) {
     struct buf_t * buf = (struct buf_t *) malloc(sizeof(struct buf_t));
@@ -59,8 +62,6 @@ ssize_t buf_fill(fd_t fd, struct buf_t * buf, size_t required) {
 
     size_t nread;
 
-    buf->size = 0;
-
     do {
         nread = read(fd, buf->data + buf->size, buf->capacity - buf->size);
 
@@ -108,4 +109,50 @@ ssize_t buf_flush(fd_t fd, struct buf_t * buf, size_t required) {
     } else {
         return buf->size;
     }
+}
+
+ssize_t buf_getline(fd_t fd, struct buf_t * buf, char * dest) {
+    size_t prev_size = 0;
+    printf("Old buffer is: '%s' %d\n", buf->data, buf->size);
+
+    for (;;) {
+        ssize_t read_result = buf_fill(fd, buf, 1);
+
+        if (read_result == -1) {
+            return -1;
+        }
+
+        printf("%d\n", buf->size);
+        for (size_t i = prev_size; i < buf->size; i++) {
+            if (buf->data[i] == '\n') {
+                buf->size -= i + 1;
+                memcpy(dest, buf->data, i);
+                memmove(buf->data, buf->data + i + 1, i);
+                printf("New buffer is: '%s'\n", buf->data);
+                return i;
+            }
+        }
+        //printf("So the buffer is: '%s'\n", buf->data);
+        prev_size = buf->size;
+    }
+
+    return -1;
+}
+
+ssize_t buf_write(fd_t fd, struct buf_t * buf, char * src, size_t len) {
+    size_t n_remain = len;
+
+    while (n_remain > 0) {
+        if (buf->capacity == buf->size) {
+            if (buf_flush(fd, buf, 1) == -1) {
+                return -1;
+            }
+        }
+        
+        size_t n_can_write = min(buf->capacity - buf->size, len);
+        memcpy(buf->data + buf->size, src, n_can_write);
+        n_remain -= n_can_write;
+    }
+
+    return len;
 }
