@@ -1,11 +1,14 @@
+#define _POSIX_SOURCE
+
 #include <helpers.h>
 #include <bufio.h>
 #include <ctype.h>
 #include <errno.h>
 #include <signal.h>
 
-const size_t BUF_SIZE = 4096;
-const size_t ARG_SIZE = 4096;
+#define BUF_SIZE 4096
+#define ARG_SIZE 4096
+
 size_t n;
 char line[BUF_SIZE + 1];
 char prompt[] = "\033[01;32m$ \033[00m";

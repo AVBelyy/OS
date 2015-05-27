@@ -10,10 +10,13 @@ clean:
 	rm -f $(PROGRAM)
 	rm -f $(PROGRAM).o
 
-$(PROGRAM): $(PROGRAM).o ../lib/libhelpers.so
+$(PROGRAM): $(PROGRAM).o ../lib/libhelpers.so ../lib/libbufio.so
 	$(CC) -o $@ $< $(LD_OPTS)
 
 ../lib/libhelpers.so:
+	$(MAKE) -C $(dir $@) $(notdir $@)
+
+../lib/libbufio.so:
 	$(MAKE) -C $(dir $@) $(notdir $@)
 
 $(PROGRAM).o: $(PROGRAM).c

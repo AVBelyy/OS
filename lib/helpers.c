@@ -1,3 +1,5 @@
+#define _POSIX_SOURCE
+
 #include <helpers.h>
 
 #include <stdlib.h>
