@@ -1,5 +1,4 @@
 #include <bufio.h>
-#include <stdio.h>
 
 #include <sys/types.h>
 
@@ -60,7 +59,7 @@ ssize_t buf_fill(fd_t fd, struct buf_t * buf, size_t required) {
     }
     #endif
 
-    size_t nread;
+    ssize_t nread;
 
     do {
         nread = read(fd, buf->data + buf->size, buf->capacity - buf->size);
@@ -83,7 +82,7 @@ ssize_t buf_flush(fd_t fd, struct buf_t * buf, size_t required) {
     #endif
 
     size_t nall = 0;
-    size_t nwritten;
+    ssize_t nwritten;
     int error = 0;
 
     if (required > buf->size) {
@@ -113,28 +112,25 @@ ssize_t buf_flush(fd_t fd, struct buf_t * buf, size_t required) {
 
 ssize_t buf_getline(fd_t fd, struct buf_t * buf, char * dest) {
     size_t prev_size = 0;
-    printf("Old buffer is: '%s' %d\n", buf->data, buf->size);
+    ssize_t read_result;
 
-    for (;;) {
-        ssize_t read_result = buf_fill(fd, buf, 1);
+    do {
+        read_result = buf_fill(fd, buf, 1);
 
         if (read_result == -1) {
             return -1;
         }
 
-        printf("%d\n", buf->size);
         for (size_t i = prev_size; i < buf->size; i++) {
             if (buf->data[i] == '\n') {
                 buf->size -= i + 1;
                 memcpy(dest, buf->data, i);
-                memmove(buf->data, buf->data + i + 1, i);
-                printf("New buffer is: '%s'\n", buf->data);
+                memmove(buf->data, buf->data + i + 1, buf->size);
                 return i;
             }
         }
-        //printf("So the buffer is: '%s'\n", buf->data);
         prev_size = buf->size;
-    }
+    } while (read_result > 0);
 
     return -1;
 }

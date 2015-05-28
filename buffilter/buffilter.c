@@ -43,8 +43,11 @@ int main(int argc, char ** argv) {
     do {
         nread = buf_getline(STDIN_FILENO, buf, line);
 
+        if (nread == -1) {
+            break;
+        }
+
         line[nread] = 0;
-        printf("'%s' %d\n", buf->data, nread);
         exec_on_line();
     } while (nread > 0);
 
