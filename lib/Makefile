@@ -1,5 +1,5 @@
 CC = gcc
-CC_OPTS = -Wall -std=c99 -fpic -I.
+CC_OPTS = -Wall -Wextra -std=c99 -fpic -I.
 LD_OPTS = 
 
 all: libbufio.so libhelpers.so

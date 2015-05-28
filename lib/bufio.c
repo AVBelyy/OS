@@ -2,6 +2,8 @@
 
 #include <sys/types.h>
 
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
 struct buf_t * buf_new(size_t capacity) {
     struct buf_t * buf = (struct buf_t *) malloc(sizeof(struct buf_t));
     if (buf == NULL) {
