@@ -57,7 +57,7 @@ ssize_t buf_fill(fd_t fd, struct buf_t * buf, size_t required) {
     }
     #endif
 
-    size_t nread;
+    ssize_t nread;
 
     buf->size = 0;
 
@@ -82,7 +82,7 @@ ssize_t buf_flush(fd_t fd, struct buf_t * buf, size_t required) {
     #endif
 
     size_t nall = 0;
-    size_t nwritten;
+    ssize_t nwritten;
     int error = 0;
 
     if (required > buf->size) {
