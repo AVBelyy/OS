@@ -59,8 +59,6 @@ ssize_t buf_fill(fd_t fd, struct buf_t * buf, size_t required) {
 
     ssize_t nread;
 
-    buf->size = 0;
-
     do {
         nread = read(fd, buf->data + buf->size, buf->capacity - buf->size);
 
@@ -108,4 +106,47 @@ ssize_t buf_flush(fd_t fd, struct buf_t * buf, size_t required) {
     } else {
         return buf->size;
     }
+}
+
+ssize_t buf_getline(fd_t fd, struct buf_t * buf, char * dest) {
+    size_t prev_size = 0;
+    ssize_t read_result;
+
+    do {
+        read_result = buf_fill(fd, buf, 1);
+
+        if (read_result == -1) {
+            return -1;
+        }
+
+        for (size_t i = prev_size; i < buf->size; i++) {
+            if (buf->data[i] == '\n') {
+                buf->size -= i + 1;
+                memcpy(dest, buf->data, i);
+                memmove(buf->data, buf->data + i + 1, buf->size);
+                return i;
+            }
+        }
+        prev_size = buf->size;
+    } while (read_result > 0);
+
+    return -1;
+}
+
+ssize_t buf_write(fd_t fd, struct buf_t * buf, char * src, size_t len) {
+    size_t n_remain = len;
+
+    while (n_remain > 0) {
+        if (buf->capacity == buf->size) {
+            if (buf_flush(fd, buf, 1) == -1) {
+                return -1;
+            }
+        }
+        
+        size_t n_can_write = min(buf->capacity - buf->size, len);
+        memcpy(buf->data + buf->size, src, n_can_write);
+        n_remain -= n_can_write;
+    }
+
+    return len;
 }
