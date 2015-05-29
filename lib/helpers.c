@@ -174,16 +174,8 @@ int runpiped(struct execargs_t ** programs, size_t n) {
                 dup2(pipefd[2 * i + 1], STDOUT_FILENO);
             }
 
-            // Close irrelevant pipes
-            for (size_t j = 0; j < 2 * (n - 1); j++) {
-                close(pipefd[i]);
-            }
-
             // Unmask SIGCHLD and SIGINT
             sigprocmask(SIG_UNBLOCK, &mask, NULL);
-            
-            // Exit with error on SIGPIPE
-            signal(SIGPIPE, exit_with_error);
 
             // Finally, execute target program
             execvp(programs[i]->file, programs[i]->argv);

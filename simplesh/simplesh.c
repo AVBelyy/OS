@@ -34,12 +34,14 @@ struct execargs_t * parse_piped_cmd(size_t start, size_t end) {
     char arg_buf[ARG_SIZE];
     char ** args = malloc((arg_count + 1) * sizeof(char *));
     size_t arg_num = 0;
+    buf_pos = 0;
 
     for (size_t i = start; i < end; i++) {
         if (isspace(line[i])) {
             if (buf_pos > 0) {
-                args[arg_num] = malloc(buf_pos);
+                args[arg_num] = malloc(buf_pos + 1);
                 memcpy(args[arg_num], arg_buf, buf_pos);
+                args[arg_num][buf_pos] = 0;
                 arg_num++;
                 buf_pos = 0;
             }
@@ -48,8 +50,9 @@ struct execargs_t * parse_piped_cmd(size_t start, size_t end) {
         }
     }
     if (buf_pos > 0) {
-        args[arg_num] = malloc(buf_pos);
+        args[arg_num] = malloc(buf_pos + 1);
         memcpy(args[arg_num], arg_buf, buf_pos);
+        args[arg_num][buf_pos] = 0;
         arg_num++;
     }
     args[arg_num] = NULL;
