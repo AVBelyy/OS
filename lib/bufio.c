@@ -124,9 +124,9 @@ ssize_t buf_getline(fd_t fd, struct buf_t * buf, char * dest) {
         for (size_t i = prev_size; i < buf->size; i++) {
             if (buf->data[i] == '\n') {
                 buf->size -= i + 1;
-                memcpy(dest, buf->data, i);
+                memcpy(dest, buf->data, i + 1);
                 memmove(buf->data, buf->data + i + 1, buf->size);
-                return i;
+                return i + 1;
             }
         }
         prev_size = buf->size;

@@ -1,27 +1,43 @@
 #include <helpers.h>
 #include <bufio.h>
+#include <ctype.h>
+#include <errno.h>
+#include <signal.h>
 
 const size_t BUF_SIZE = 4096;
 const size_t ARG_SIZE = 4096;
-const size_t ARGS_COUNT = 2048;
 size_t n;
 char line[BUF_SIZE + 1];
-char prompt[] = "\033[01;32m$\033[00m";
+char prompt[] = "\033[01;32m$ \033[00m";
 
 struct execargs_t * parse_piped_cmd(size_t start, size_t end) {
-    char arg_buf[ARG_SIZE];
-    size_t buf_pos = 0;
-
-    // TODO : Because I'm too lazy to precount args count
-    char ** args = malloc(ARGS_COUNT * sizeof(char *));
+    // Precalc args count
     size_t arg_count = 0;
+    size_t buf_pos = 0;
+    for (size_t i = start; i < end; i++) {
+        if (isspace(line[i])) {
+            if (buf_pos > 0) {
+                arg_count++;
+                buf_pos = 0;
+            }
+        } else {
+            buf_pos++;
+        }
+    }
+    if (buf_pos > 0) {
+        arg_count++;
+    }
+
+    char arg_buf[ARG_SIZE];
+    char ** args = malloc((arg_count + 1) * sizeof(char *));
+    size_t arg_num = 0;
 
     for (size_t i = start; i < end; i++) {
-        if (line[i] == ' ') {
+        if (isspace(line[i])) {
             if (buf_pos > 0) {
-                args[arg_count] = malloc(buf_pos);
-                memcpy(args[arg_count], arg_buf, buf_pos);
-                arg_count++;
+                args[arg_num] = malloc(buf_pos);
+                memcpy(args[arg_num], arg_buf, buf_pos);
+                arg_num++;
                 buf_pos = 0;
             }
         } else {
@@ -29,11 +45,11 @@ struct execargs_t * parse_piped_cmd(size_t start, size_t end) {
         }
     }
     if (buf_pos > 0) {
-        args[arg_count] = malloc(buf_pos);
-        memcpy(args[arg_count], arg_buf, buf_pos);
-        arg_count++;
+        args[arg_num] = malloc(buf_pos);
+        memcpy(args[arg_num], arg_buf, buf_pos);
+        arg_num++;
     }
-    args[arg_count] = NULL;
+    args[arg_num] = NULL;
 
     return new_execargs(args[0], args);
 }
@@ -51,28 +67,52 @@ struct execargs_t ** parse_line(size_t start, size_t end) {
     struct execargs_t ** programs = malloc(n * sizeof(struct execargs_t *));
 
     // Parse piped commands
-    size_t left = start, prg_count = 0;
+    size_t left = start, prg_num = 0;
     for (size_t i = start; i < end; i++) {
         if (line[i] == '|') {
-            programs[prg_count++] = parse_piped_cmd(left, i);
+            programs[prg_num++] = parse_piped_cmd(left, i);
             left = i + 1;
         }
     }
-    programs[prg_count] = parse_piped_cmd(left, end);
+    programs[prg_num] = parse_piped_cmd(left, end);
 
     return programs;
+}
+
+int sigint_flag = 0;
+void sigint_handler() {
+    sigint_flag = 1;
+}
+
+void set_signal_handler(int signo, void (*handler)(int)) {
+    struct sigaction action;
+    action.sa_handler = handler;
+    action.sa_flags = 0;
+    sigemptyset(&action.sa_mask);
+    sigaction(signo, &action, NULL);
 }
 
 int main() {
     struct buf_t * io_buf = buf_new(BUF_SIZE);
     ssize_t nread;
 
+    set_signal_handler(SIGINT, sigint_handler);
+
     for (;;) {
         write_(STDOUT_FILENO, prompt, sizeof(prompt)); 
         nread = buf_getline(STDIN_FILENO, io_buf, line);
 
         if (nread <= 0) {
-            break;
+            if (errno == EINTR && sigint_flag == 1) {
+                // Continue as if nothing happened
+                int newline = '\n';
+                write_(STDOUT_FILENO, &newline, 1);
+                errno = 0;
+                sigint_flag = 0;
+                continue;
+            } else {
+                break;
+            }
         }
         
         struct execargs_t ** programs = parse_line(0, nread);

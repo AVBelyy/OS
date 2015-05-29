@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <stdio.h> // TODO : for debug purposes only
 #include <signal.h>
 
 ssize_t read_until(int fd, void * buf, size_t count, char delimeter) {
@@ -116,6 +115,10 @@ void exit_with_error() {
     exit(1);
 }
 
+// Empty signal handler
+void do_nothing() {
+}
+
 int runpiped(struct execargs_t ** programs, size_t n) {
     // Create all necessary pipes
     int pipefd[2 * (n - 1)];
@@ -132,20 +135,25 @@ int runpiped(struct execargs_t ** programs, size_t n) {
     sigaddset(&mask, SIGINT);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
-    struct sigaction action;
-    action.sa_handler = SIG_IGN; // TODO : try sth else
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-    sigaction(SIGCHLD, &action, NULL);
-    sigaction(SIGINT, &action, NULL);
+    // Save signal handlers
+    struct sigaction sigchld_action;
+    struct sigaction sigint_action;
+    sigaction(SIGCHLD, NULL, &sigchld_action);
+    sigaction(SIGINT, NULL, &sigint_action);
+
+    // Set meaningless handlers
+    signal(SIGCHLD, do_nothing);
+    signal(SIGINT, do_nothing);
 
     // Start child processes
     int pids[n];
+    int error_on_fork = 0;
+    size_t alive = 0;
     for (size_t i = 0; i < n; i++) {
         pid_t pid = fork();
         if (pid == -1) {
-            // TODO : kill previously created children
-            return -1;
+            error_on_fork = 1;
+            break;
         }
         if (pid == 0) {
             // Connect STDIN and STDOUT to pipes
@@ -165,36 +173,59 @@ int runpiped(struct execargs_t ** programs, size_t n) {
             sigprocmask(SIG_UNBLOCK, &mask, NULL);
             
             // Exit with error on SIGPIPE
-            struct sigaction action;
-            action.sa_handler = exit_with_error;
-            sigemptyset(&action.sa_mask);
-            action.sa_flags = 0;
-            sigaction(SIGPIPE, &action, NULL);
+            signal(SIGPIPE, exit_with_error);
 
             // Finally, execute target program
             execvp(programs[i]->file, programs[i]->argv);
             return -1;
         } else {
+            alive++;
             pids[i] = pid;
         }
     }
 
     // Wait for queued signals to arrive
-    siginfo_t info;
-    for (;;) {
-        if (sigwaitinfo(&mask, &info) < 0) {
+    int sig;
+    for (; alive ;) {
+        if (sigwait(&mask, &sig) < 0) {
             continue;
         }
-        if (info.si_signo == SIGCHLD) {
-            printf("a child terminated, pid = %d\n", info.si_pid);
-        } else /* if (info.si_signo == SIGINT) */ {
-            printf("sigint arrived\n");
+        if (sig == SIGCHLD) {
+            // Remove terminated child process from list of alive children
+            int status;
+            pid_t pid;
+            while ((pid = waitpid((pid_t)-1, &status, WNOHANG)) > 0) {
+                for (size_t i = 0; i < n; i++) {
+                    if (pids[i] == pid) {
+                        pids[i] = 0;
+                        break;
+                    }
+                }
+            }
+            alive = 0;
+        } else /* if (sig == SIGINT) */ {
+            alive = 0;
         }
     }
-    
+
+    // Kill remaining alive children
+    for (size_t i = 0; i < n; i++) {
+        if (pids[i] > 0) {
+            kill(pids[i], SIGKILL);
+        }
+    }
+
+    // Restore signal handlers
+    sigaction(SIGCHLD, &sigchld_action, NULL);
+    sigaction(SIGINT, &sigint_action, NULL);
+
+    // Unmask SIGCHLD and SIGINT
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
     // Close all pipes
     for (size_t i = 0; i < 2 * (n - 1); i++) {
         close(pipefd[i]);
     }
-    return 0;
+
+    return error_on_fork ? -1 : 0;
 }
