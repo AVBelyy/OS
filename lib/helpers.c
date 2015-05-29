@@ -126,6 +126,11 @@ int runpiped(struct execargs_t ** programs, size_t n) {
     int pipefd[2 * (n - 1)];
     for (size_t i = 0; i < n - 1; i++) {
         if (pipe(pipefd + 2 * i) == -1) {
+            // Close already opened pipes
+            for (size_t j = 0; j < i; j++) {
+                close(pipefd[2 * j]);
+                close(pipefd[2 * j + 1]);
+            }
             return -1;
         }
     }
