@@ -219,6 +219,7 @@ int runpiped(struct execargs_t ** programs, size_t n) {
     for (size_t i = 0; i < n; i++) {
         if (pids[i] > 0) {
             kill(pids[i], SIGKILL);
+            waitpid(pids[i], NULL, 0);
         }
     }
 
