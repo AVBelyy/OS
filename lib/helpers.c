@@ -1,8 +1,11 @@
 #define _POSIX_SOURCE
+#define _GNU_SOURCE
 
 #include <helpers.h>
 
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -125,7 +128,7 @@ int runpiped(struct execargs_t ** programs, size_t n) {
     // Create all necessary pipes
     int pipefd[2 * (n - 1)];
     for (size_t i = 0; i < n - 1; i++) {
-        if (pipe(pipefd + 2 * i) == -1) {
+        if (pipe2(pipefd + 2 * i, O_CLOEXEC) == -1) {
             // Close already opened pipes
             for (size_t j = 0; j < i; j++) {
                 close(pipefd[2 * j]);
@@ -191,6 +194,11 @@ int runpiped(struct execargs_t ** programs, size_t n) {
         }
     }
 
+    // Close all pipes
+    for (size_t i = 0; i < 2 * (n - 1); i++) {
+        close(pipefd[i]);
+    }
+
     // Wait for queued signals to arrive
     int sig;
     for (; alive ;) {
@@ -201,15 +209,15 @@ int runpiped(struct execargs_t ** programs, size_t n) {
             // Remove terminated child process from list of alive children
             int status;
             pid_t pid;
-            while ((pid = waitpid((pid_t)-1, &status, WNOHANG)) > 0) {
+            while ((pid = waitpid((pid_t)-1, &status, WNOHANG)) > 0 && alive) {
                 for (size_t i = 0; i < n; i++) {
                     if (pids[i] == pid) {
                         pids[i] = 0;
                         break;
                     }
                 }
+                alive--;
             }
-            alive = 0;
         } else /* if (sig == SIGINT) */ {
             alive = 0;
         }
@@ -228,11 +236,6 @@ int runpiped(struct execargs_t ** programs, size_t n) {
 
     // Unmask SIGCHLD and SIGINT
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
-
-    // Close all pipes
-    for (size_t i = 0; i < 2 * (n - 1); i++) {
-        close(pipefd[i]);
-    }
 
     return error_on_fork ? -1 : 0;
 }
