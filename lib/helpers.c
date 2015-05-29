@@ -4,6 +4,7 @@
 #include <helpers.h>
 
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -125,6 +126,8 @@ void do_nothing() {
 }
 
 int runpiped(struct execargs_t ** programs, size_t n) {
+    int retcode = 0;
+
     // Create all necessary pipes
     int pipefd[2 * (n - 1)];
     for (size_t i = 0; i < n - 1; i++) {
@@ -157,6 +160,7 @@ int runpiped(struct execargs_t ** programs, size_t n) {
 
     // Start child processes
     int pids[n];
+    memset(pids, 0, n * sizeof(int));
     int error_on_fork = 0;
     size_t alive = 0;
     for (size_t i = 0; i < n; i++) {
@@ -179,7 +183,7 @@ int runpiped(struct execargs_t ** programs, size_t n) {
 
             // Finally, execute target program
             execvp(programs[i]->file, programs[i]->argv);
-            return -1;
+            exit(-1);
         } else {
             alive++;
             pids[i] = pid;
@@ -205,6 +209,9 @@ int runpiped(struct execargs_t ** programs, size_t n) {
                 for (size_t i = 0; i < n; i++) {
                     if (pids[i] == pid) {
                         pids[i] = 0;
+                        if (i == n - 1) {
+                            retcode = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+                        }
                         break;
                     }
                 }
@@ -216,10 +223,14 @@ int runpiped(struct execargs_t ** programs, size_t n) {
     }
 
     // Kill remaining alive children
+    int status;
     for (size_t i = 0; i < n; i++) {
         if (pids[i] > 0) {
             kill(pids[i], SIGKILL);
-            waitpid(pids[i], NULL, 0);
+            waitpid(pids[i], &status, 0);
+            if (i == n - 1) {
+                retcode = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+            }
         }
     }
 
@@ -230,5 +241,5 @@ int runpiped(struct execargs_t ** programs, size_t n) {
     // Unmask SIGCHLD and SIGINT
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
-    return error_on_fork ? -1 : 0;
+    return error_on_fork ? -1 : retcode;
 }

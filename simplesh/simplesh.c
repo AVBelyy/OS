@@ -11,7 +11,7 @@
 
 size_t n;
 char line[BUF_SIZE + 1];
-char prompt[] = "\033[01;32m$ \033[00m";
+char prompt_fmt[] = "%d \033[01;32m$ \033[00m";
 
 struct execargs_t * parse_piped_cmd(size_t start, size_t end) {
     // Precalc args count
@@ -101,11 +101,14 @@ void set_signal_handler(int signo, void (*handler)(int)) {
 int main() {
     struct buf_t * io_buf = buf_new(BUF_SIZE);
     ssize_t nread;
+    int retcode = 0;
 
     set_signal_handler(SIGINT, sigint_handler);
 
     for (;;) {
-        write_(STDOUT_FILENO, prompt, sizeof(prompt)); 
+        char prompt_buf[256];
+        int prompt_len = sprintf(prompt_buf, prompt_fmt, retcode);
+        write_(STDOUT_FILENO, prompt_buf, prompt_len);
         nread = buf_getline(STDIN_FILENO, io_buf, line);
 
         if (nread <= 0) {
@@ -122,7 +125,7 @@ int main() {
         }
         
         struct execargs_t ** programs = parse_line(0, nread);
-        runpiped(programs, n);
+        retcode = runpiped(programs, n);
     }
 
     // Cleanup.
