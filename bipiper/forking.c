@@ -65,21 +65,17 @@ int create_client(int sockfd, struct sockaddr_in * client) {
 }
 
 void start_client(int fromfd, int tofd) {
-    printf("client %d connected\n", fromfd);
-
     struct buf_t * buf = buf_new(4096);
     ssize_t nread, nwritten;
 
     do {
-        nread = buf_fill(fromfd, buf, buf_capacity(buf));
+        nread = buf_fill(fromfd, buf, 1);
         nwritten = buf_flush(tofd, buf, buf_size(buf));
         if (nread == -1 || nwritten == -1) {
             perror("client::r/w");
             break;
         }
     } while (nread > 0);
-
-    printf("client %d disconnected\n", fromfd);
     exit(0);
 }
 
