@@ -116,13 +116,8 @@ int exec(struct execargs_t * args) {
     return spawn(args->file, args->argv);
 }
 
-// Signal handler for child process of runpiped(...)
-void exit_with_error() {
-    exit(1);
-}
-
 // Empty signal handler
-void do_nothing() {
+void do_nothing(int signo) {
 }
 
 int runpiped(struct execargs_t ** programs, size_t n) {
