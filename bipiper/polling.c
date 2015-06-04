@@ -142,6 +142,7 @@ int main(int argc, char * argv[]) {
     };
     sigemptyset(&action.sa_mask);
     sigaction(SIGINT, &action, NULL);
+    signal(SIGPIPE, SIG_IGN);
 
     // Greeting message
     printf("listening on ports %d and %d\n", port1, port2);
