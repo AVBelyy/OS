@@ -52,6 +52,17 @@ size_t buf_size(struct buf_t * buf) {
     return buf->size;
 }
 
+void buf_put(struct buf_t * buf, const char * src, size_t len) {
+    #ifdef DEBUG
+    if (buf == NULL || src == NULL || len > buf->capacity - buf->size) {
+        abort();
+    }
+    #endif
+
+    memcpy(buf->data + buf->size, src, len);
+    buf->size += len;
+}
+
 ssize_t buf_fill(fd_t fd, struct buf_t * buf, size_t required) {
     #ifdef DEBUG
     if (buf == NULL || required > buf->capacity) {

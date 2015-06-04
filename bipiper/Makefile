@@ -2,15 +2,19 @@ CC = gcc
 CC_OPTS = -Wall -O2 -std=c99 -I../lib
 LD_OPTS = -L../lib -lhelpers -lbufio
 
-PROGRAM = forking
+PROGRAM1 = forking
+PROGRAM2 = polling
 
-all: $(PROGRAM)
+all: $(PROGRAM1) $(PROGRAM2)
 
 clean:
-	rm -f $(PROGRAM)
-	rm -f $(PROGRAM).o
+	rm -f $(PROGRAM1) $(PROGRAM2)
+	rm -f $(PROGRAM2).o $(PROGRAM2).o
 
-$(PROGRAM): $(PROGRAM).o ../lib/libhelpers.so ../lib/libbufio.so
+$(PROGRAM1): $(PROGRAM1).o ../lib/libhelpers.so ../lib/libbufio.so
+	$(CC) -o $@ $< $(LD_OPTS)
+
+$(PROGRAM2): $(PROGRAM2).o ../lib/libhelpers.so ../lib/libbufio.so
 	$(CC) -o $@ $< $(LD_OPTS)
 
 ../lib/libhelpers.so:
@@ -19,5 +23,8 @@ $(PROGRAM): $(PROGRAM).o ../lib/libhelpers.so ../lib/libbufio.so
 ../lib/libbufio.so:
 	$(MAKE) -C $(dir $@) $(notdir $@)
 
-$(PROGRAM).o: $(PROGRAM).c
+$(PROGRAM1).o: $(PROGRAM1).c
+	$(CC) -o $@ -c $< $(CC_OPTS)
+
+$(PROGRAM2).o: $(PROGRAM2).c
 	$(CC) -o $@ -c $< $(CC_OPTS)
