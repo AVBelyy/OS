@@ -75,10 +75,13 @@ int create_client_and_poll_existing(int sockfd) {
 
     while (1) {
         // set reading / writing permissions
-        for (size_t i = 0; i < 2 * clients; i++) {
-            size_t bufsize = buffs[i]->size;
-            polls[i + 2].events  = bufsize == BUF_SIZE ? 0 : POLLIN;
-            polls[i + 2].events |= bufsize == 0 ? 0 : POLLOUT;
+        for (size_t i = 0; i < clients; i++) {
+            size_t buf1size = buffs[2 * i]->size;
+            size_t buf2size = buffs[2 * i + 1]->size;
+            polls[2 * i + 2].events  = buf1size == BUF_SIZE ? 0 : POLLIN;
+            polls[2 * i + 2].events |= buf2size == 0 ? 0 : POLLOUT;
+            polls[2 * i + 3].events  = buf1size == 0 ? 0 : POLLOUT;
+            polls[2 * i + 3].events |= buf2size == BUF_SIZE ? 0 : POLLIN;
         }
         // poll loop
         int res = poll(polls, polls_count, -1);
@@ -91,23 +94,22 @@ int create_client_and_poll_existing(int sockfd) {
                 if (polls[i].fd == sockfd) {
                     return accept(sockfd, NULL, NULL);
                 } else {
-                    size_t cap = BUF_SIZE - buffs[j - 2]->size;
+                    size_t cap = BUF_SIZE - buffs[i - 2]->size;
                     ssize_t nread = recv(polls[i].fd, &buf, cap, 0);
                     if (nread > 0) {
-                        buf_put(buffs[j - 2], buf, nread);
+                        buf_put(buffs[i - 2], buf, nread);
                     }
                 }
             }
             if (polls[i].revents & POLLOUT) {
-                size_t cap = buffs[i - 2]->size;
-                ssize_t nwritten = send(polls[i].fd, buffs[i - 2]->data, cap, 0);
+                size_t cap = buffs[j - 2]->size;
+                ssize_t nwritten = send(polls[i].fd, buffs[j - 2]->data, cap, 0);
                 if (nwritten > 0) {
-                    buffs[i - 2]->size = 0;
+                    buffs[j - 2]->size = 0;
                 }
             }
             if (polls[i].revents & POLLHUP) {
-                size_t k = (i >> 1) << 1;
-                return -k;
+                return -(i & ~1);
             }
         }
     }
@@ -183,9 +185,7 @@ int main(int argc, char * argv[]) {
             buffs[k - 2] = buffs[2 * clients - 2];
             buffs[k - 1] = buffs[2 * clients - 1];
             polls[k].fd = polls[2 * clients].fd;
-            polls[k].revents = polls[2 * clients].revents;
             polls[k + 1].fd = polls[2 * clients + 1].fd;
-            polls[k + 1].revents = polls[2 * clients + 1].revents;
             clients--;
         } else {
             // we have a new pair of clients
