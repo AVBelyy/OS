@@ -1,6 +1,7 @@
 #define _POSIX_SOURCE
 
 #include <helpers.h>
+#include <stdio.h>
 #include <bufio.h>
 #include <ctype.h>
 #include <errno.h>
