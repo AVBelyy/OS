@@ -25,7 +25,7 @@ int main() {
         if (nwritten < nread) {
             cat_error("Unexpected EOF in output");
         }
-    } while (nread == sizeof(buf));
+    } while (nread > 0);
 
     return 0;
 }

@@ -117,7 +117,7 @@ ssize_t buf_flush(fd_t fd, struct buf_t * buf, size_t required) {
     if (error) {
         return -1;
     } else {
-        return buf->size;
+        return nall;
     }
 }
 
