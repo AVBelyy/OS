@@ -143,7 +143,7 @@ ssize_t buf_getline(fd_t fd, struct buf_t * buf, char * dest) {
         prev_size = buf->size;
     } while (read_result > 0);
 
-    return -1;
+    return -2;
 }
 
 ssize_t buf_write(fd_t fd, struct buf_t * buf, char * src, size_t len) {

@@ -6,8 +6,8 @@ int main() {
     ssize_t nread, nwritten;
 
     do {
-        nread = buf_fill(STDIN_FILENO, buf, buf_capacity(buf));
-        nwritten = buf_flush(STDOUT_FILENO, buf, buf_size(buf));
+        nread = buf_fill(STDIN_FILENO, buf, 1);
+        nwritten = buf_flush(STDOUT_FILENO, buf, 1);
         if (nread == -1 || nwritten == -1) {
             retcode = 1;
             break;
